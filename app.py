@@ -593,40 +593,6 @@ def data_table_page(dashboard_data: pd.DataFrame, rls_data: pd.DataFrame) -> Non
     st.caption("Grafik tetap provinsi, tapi detail kabupaten/kota untuk lama sekolah ditampilkan di halaman tabel.")
     st.caption(f"Baris merge provinsi: {len(dashboard_data)} | Baris RLS terfilter: {len(rls_data)}")
 
-    with st.expander("Deskripsi Data dan Sumber", expanded=False):
-        st.markdown("**Sumber Data**")
-        st.write(
-            "Data berasal dari BPS dan disusun dari berbagai sensus, survei, serta sumber statistik resmi lainnya."
-        )
-        st.markdown(
-            "- [Tabel BPS untuk PDRB Atas Dasar Harga Berlaku per Provinsi](https://www.bps.go.id/id/statistics-table/3/WkdVMWRYVnBkMnBvVEhKSVkyWXhNblZtTjJSbmR6MDkjMw==/produk-domestik-regional-bruto-atas-dasar-harga-berlaku-menurut-provinsi--miliar-rupiah-2022.html?year=2025)"
-        )
-        st.markdown(
-            "- [Tabel BPS untuk Rata-rata Lama Sekolah Metode Baru](https://www.bps.go.id/id/statistics-table/2/NDE1IzI=/-metode-baru-rata-rata-lama-sekolah.html)"
-        )
-        st.markdown("**Keterangan Kode Data**")
-        kode_col1, kode_col2 = st.columns(2)
-        with kode_col1:
-            st.markdown(
-                """
-                `...`  Data tidak tersedia  
-                `–`  Tidak ada atau nol  
-                `NA`  Data tidak dapat ditampilkan  
-                `e`  Angka estimasi  
-                `r`  Angka diperbaiki
-                """
-            )
-        with kode_col2:
-            st.markdown(
-                """
-                `~0`  Data dapat diabaikan  
-                `*`  Angka sementara  
-                `**`  Angka sangat sementara  
-                `***`  Angka sangat sangat sementara  
-                `a`  25% < RSE <= 50%
-                """
-            )
-
     tab1, tab2 = st.tabs(["Tabel Merge Provinsi", "Tabel RLS Kabupaten/Kota"])
 
     with tab1:
@@ -732,7 +698,7 @@ def profile_page(data: pd.DataFrame, selected_regions: list[str]) -> None:
 
 def about_page(notices: list[str]) -> None:
     st.title("Tentang Dataset")
-    st.caption("Status integrasi endpoint BPS dan strategi cache lokal server.")
+    st.caption("Ringkasan struktur data dashboard dan referensi sumber resmi dari BPS.")
 
     st.markdown(
         """
@@ -745,6 +711,14 @@ def about_page(notices: list[str]) -> None:
         3. `Detail kabupaten/kota di tabel`
            RLS kabupaten/kota tetap tersedia untuk eksplorasi tabel.
         """
+    )
+
+    st.markdown("**Referensi Sumber BPS**")
+    st.markdown(
+        "- [Tabel BPS untuk PDRB Atas Dasar Harga Berlaku per Provinsi](https://www.bps.go.id/id/statistics-table/3/WkdVMWRYVnBkMnBvVEhKSVkyWXhNblZtTjJSbmR6MDkjMw==/produk-domestik-regional-bruto-atas-dasar-harga-berlaku-menurut-provinsi--miliar-rupiah-2022.html?year=2025)"
+    )
+    st.markdown(
+        "- [Tabel BPS untuk Rata-rata Lama Sekolah Metode Baru](https://www.bps.go.id/id/statistics-table/2/NDE1IzI=/-metode-baru-rata-rata-lama-sekolah.html)"
     )
 
 
