@@ -1,0 +1,86 @@
+import pandas as pd
+
+
+def build_sample_pdrb_data() -> pd.DataFrame:
+    rows = [
+        ("Aceh", "1100000", 2021, 214_000.00, "-"),
+        ("Aceh", "1100000", 2022, 229_500.00, "-"),
+        ("Aceh", "1100000", 2023, 244_000.00, "-"),
+        ("Aceh", "1100000", 2025, 257_502.43, "**"),
+        ("Sumatera Utara", "1200000", 2021, 1_060_000.00, "-"),
+        ("Sumatera Utara", "1200000", 2022, 1_134_500.00, "-"),
+        ("Sumatera Utara", "1200000", 2023, 1_190_600.00, "-"),
+        ("Sumatera Utara", "1200000", 2025, 1_236_193.57, "**"),
+        ("Sumatera Barat", "1300000", 2021, 245_400.00, "-"),
+        ("Sumatera Barat", "1300000", 2022, 261_700.00, "-"),
+        ("Sumatera Barat", "1300000", 2023, 278_200.00, "-"),
+        ("Sumatera Barat", "1300000", 2025, 352_189.40, "**"),
+        ("DKI Jakarta", "3100000", 2021, 3_401_200.00, "-"),
+        ("DKI Jakarta", "3100000", 2022, 3_588_900.00, "-"),
+        ("DKI Jakarta", "3100000", 2023, 3_756_400.00, "-"),
+        ("DKI Jakarta", "3100000", 2025, 3_926_153.30, "**"),
+        ("Jawa Barat", "3200000", 2021, 2_601_000.00, "-"),
+        ("Jawa Barat", "3200000", 2022, 2_742_200.00, "-"),
+        ("Jawa Barat", "3200000", 2023, 2_887_100.00, "-"),
+        ("Jawa Barat", "3200000", 2025, 3_038_667.95, "**"),
+        ("Jawa Timur", "3500000", 2021, 2_958_600.00, "-"),
+        ("Jawa Timur", "3500000", 2022, 3_122_700.00, "-"),
+        ("Jawa Timur", "3500000", 2023, 3_266_800.00, "-"),
+        ("Jawa Timur", "3500000", 2025, 3_403_166.85, "**"),
+    ]
+    return pd.DataFrame(
+        rows,
+        columns=["wilayah", "kode_wilayah", "tahun", "pdrb_berlaku_miliar", "status_data"],
+    ).assign(level_wilayah="Provinsi", provinsi=lambda df: df["wilayah"])
+
+
+def build_sample_rls_data() -> pd.DataFrame:
+    rows = [
+        ("Provinsi", "Aceh", "Aceh", "1100000", 2021, 9.62),
+        ("Provinsi", "Aceh", "Aceh", "1100000", 2022, 9.71),
+        ("Provinsi", "Aceh", "Aceh", "1100000", 2023, 9.83),
+        ("Provinsi", "Aceh", "Aceh", "1100000", 2025, 9.95),
+        ("Kabupaten/Kota", "Aceh", "Simeulue", "1101000", 2025, 10.09),
+        ("Kabupaten/Kota", "Aceh", "Aceh Singkil", "1102000", 2025, 9.05),
+        ("Kabupaten/Kota", "Aceh", "Aceh Selatan", "1103000", 2025, 9.25),
+        ("Provinsi", "Sumatera Utara", "Sumatera Utara", "1200000", 2021, 9.45),
+        ("Provinsi", "Sumatera Utara", "Sumatera Utara", "1200000", 2022, 9.56),
+        ("Provinsi", "Sumatera Utara", "Sumatera Utara", "1200000", 2023, 9.68),
+        ("Provinsi", "Sumatera Utara", "Sumatera Utara", "1200000", 2025, 10.08),
+        ("Kabupaten/Kota", "Sumatera Utara", "Kota Medan", "1275000", 2025, 11.80),
+        ("Kabupaten/Kota", "Sumatera Utara", "Kota Pematang Siantar", "1273000", 2025, 11.83),
+        ("Provinsi", "Sumatera Barat", "Sumatera Barat", "1300000", 2021, 9.18),
+        ("Provinsi", "Sumatera Barat", "Sumatera Barat", "1300000", 2022, 9.31),
+        ("Provinsi", "Sumatera Barat", "Sumatera Barat", "1300000", 2023, 9.42),
+        ("Provinsi", "Sumatera Barat", "Sumatera Barat", "1300000", 2025, 9.77),
+        ("Kabupaten/Kota", "Sumatera Barat", "Kota Padang", "1371000", 2025, 11.64),
+        ("Provinsi", "DKI Jakarta", "DKI Jakarta", "3100000", 2021, 11.08),
+        ("Provinsi", "DKI Jakarta", "DKI Jakarta", "3100000", 2022, 11.16),
+        ("Provinsi", "DKI Jakarta", "DKI Jakarta", "3100000", 2023, 11.24),
+        ("Provinsi", "DKI Jakarta", "DKI Jakarta", "3100000", 2025, 11.59),
+        ("Kabupaten/Kota", "DKI Jakarta", "Kota Jakarta Selatan", "3171000", 2025, 12.06),
+        ("Kabupaten/Kota", "DKI Jakarta", "Kota Jakarta Timur", "3172000", 2025, 12.01),
+        ("Provinsi", "Jawa Barat", "Jawa Barat", "3200000", 2021, 8.61),
+        ("Provinsi", "Jawa Barat", "Jawa Barat", "3200000", 2022, 8.73),
+        ("Provinsi", "Jawa Barat", "Jawa Barat", "3200000", 2023, 8.86),
+        ("Provinsi", "Jawa Barat", "Jawa Barat", "3200000", 2025, 9.14),
+        ("Kabupaten/Kota", "Jawa Barat", "Kota Bandung", "3273000", 2025, 11.41),
+        ("Kabupaten/Kota", "Jawa Barat", "Kota Bekasi", "3275000", 2025, 12.11),
+        ("Provinsi", "Jawa Timur", "Jawa Timur", "3500000", 2021, 8.28),
+        ("Provinsi", "Jawa Timur", "Jawa Timur", "3500000", 2022, 8.39),
+        ("Provinsi", "Jawa Timur", "Jawa Timur", "3500000", 2023, 8.51),
+        ("Provinsi", "Jawa Timur", "Jawa Timur", "3500000", 2025, 8.39),
+        ("Kabupaten/Kota", "Jawa Timur", "Kota Surabaya", "3578000", 2025, 11.15),
+        ("Kabupaten/Kota", "Jawa Timur", "Kota Malang", "3573000", 2025, 11.36),
+    ]
+    return pd.DataFrame(
+        rows,
+        columns=[
+            "level_wilayah",
+            "provinsi",
+            "wilayah",
+            "kode_wilayah",
+            "tahun",
+            "rata_lama_sekolah",
+        ],
+    )
