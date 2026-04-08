@@ -1,14 +1,140 @@
 import pandas as pd
 import streamlit as st
+import re
 
 from dashboard.charts import format_miliar, render_connected_scatter
+# from dashboard.config import GEMINI_API_KEY
+
+
+def _resolve_gemini_api_key(input_key: str) -> str:
+    if input_key.strip():
+        return input_key.strip()
+
+    secrets_key = st.secrets.get("GEMINI_API_KEY", "")
+    if isinstance(secrets_key, str) and secrets_key.strip():
+        return secrets_key.strip()
+
+    # if isinstance(GEMINI_API_KEY, str) and GEMINI_API_KEY.strip():
+    #     return GEMINI_API_KEY.strip()
+
+    return ""
+
+
+def _build_scatter_context(data: pd.DataFrame) -> str:
+    if data.empty:
+        return "Data kosong."
+
+    cleaned = data[["wilayah", "tahun", "rata_lama_sekolah", "pdrb_berlaku_miliar"]].dropna()
+    if cleaned.empty:
+        return "Data scatter kosong setelah pembersihan."
+
+    per_region = (
+        cleaned.sort_values(["wilayah", "tahun"])
+        .groupby("wilayah", as_index=False)
+        .agg(
+            tahun_awal=("tahun", "min"),
+            tahun_akhir=("tahun", "max"),
+            rls_awal=("rata_lama_sekolah", "first"),
+            rls_akhir=("rata_lama_sekolah", "last"),
+            pdrb_awal=("pdrb_berlaku_miliar", "first"),
+            pdrb_akhir=("pdrb_berlaku_miliar", "last"),
+        )
+    )
+    per_region["delta_rls"] = per_region["rls_akhir"] - per_region["rls_awal"]
+    per_region["delta_pdrb"] = per_region["pdrb_akhir"] - per_region["pdrb_awal"]
+
+    latest_year = int(cleaned["tahun"].max())
+    latest_slice = cleaned[cleaned["tahun"] == latest_year]
+    top_latest = latest_slice.sort_values("pdrb_berlaku_miliar", ascending=False).head(8)
+
+    summary_block = per_region[["wilayah", "tahun_awal", "tahun_akhir", "delta_rls", "delta_pdrb"]].to_csv(index=False)
+    latest_block = top_latest[["wilayah", "rata_lama_sekolah", "pdrb_berlaku_miliar"]].to_csv(index=False)
+
+    return (
+        f"Jumlah baris: {len(cleaned)}\n"
+        f"Jumlah provinsi: {cleaned['wilayah'].nunique()}\n"
+        f"Rentang tahun: {int(cleaned['tahun'].min())} - {int(cleaned['tahun'].max())}\n"
+        "\nRingkasan perubahan per provinsi (CSV):\n"
+        f"{summary_block}\n"
+        f"Top PDRB di tahun {latest_year} (CSV):\n"
+        f"{latest_block}"
+    )
+
+
+def _generate_gemini_insight(data: pd.DataFrame, api_key: str) -> tuple[str | None, str | None]:
+    if not api_key:
+        return None, "API key Gemini belum diisi."
+
+    prompt = (
+        "Kamu adalah analis data ekonomi-pendidikan Indonesia. "
+        "Berikan insight ringkas dari scatter plot hubungan RLS dan PDRB. "
+        "Format jawaban: \n"
+        "1) 3 insight utama berbasis data,\n"
+        "2) 2 anomali/hal yang perlu dicek,\n"
+        "3) 2 rekomendasi aksi kebijakan atau analisis lanjutan.\n"
+        "Gunakan bahasa Indonesia yang jelas dan tidak bertele-tele.\n\n"
+        "Data ringkasan:\n"
+        f"{_build_scatter_context(data)}"
+    )
+
+    def _friendly_gemini_error(exc: Exception) -> str:
+        raw = str(exc)
+        lower = raw.lower()
+        if "resource_exhausted" in lower or "quota exceeded" in lower or "429" in lower:
+            retry_match = re.search(r"retry in ([0-9.]+)s", raw, flags=re.IGNORECASE)
+            retry_note = ""
+            if retry_match:
+                retry_note = f" Coba ulang sekitar {retry_match.group(1)} detik lagi."
+            return (
+                "Quota Gemini kamu sedang habis / belum aktif (429 RESOURCE_EXHAUSTED). "
+                "Cek billing dan quota project di Google AI Studio / Google Cloud."
+                f"{retry_note}"
+            )
+        if "api key" in lower and ("invalid" in lower or "not valid" in lower):
+            return "API key Gemini tidak valid. Cek lagi nilai `GEMINI_API_KEY`."
+        return f"Gagal memanggil Gemini: {raw}"
+
+    # Coba SDK terbaru dulu, lalu fallback model jika diperlukan.
+    try:
+        from google import genai  # type: ignore
+
+        client = genai.Client(api_key=api_key)
+        last_error: Exception | None = None
+        for model_name in ("gemini-3-flash", "gemini-3-flash-lite", "gemini-2.5-flash"):
+            try:
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                )
+                return (response.text or "Tidak ada respons dari Gemini."), None
+            except Exception as exc:
+                last_error = exc
+                continue
+        if last_error is not None:
+            return None, _friendly_gemini_error(last_error)
+        return None, "Gagal memanggil Gemini: tidak ada model yang tersedia."
+    except ModuleNotFoundError:
+        try:
+            import google.generativeai as genai  # type: ignore
+
+            genai.configure(api_key=api_key)
+            model = genai.GenerativeModel("gemini-1.5-flash")
+            response = model.generate_content(prompt)
+            text = getattr(response, "text", None)
+            return (text or "Tidak ada respons dari Gemini."), None
+        except ModuleNotFoundError:
+            return None, "Library Gemini belum terpasang. Jalankan: pip install google-genai"
+        except Exception as exc:
+            return None, _friendly_gemini_error(exc)
+    except Exception as exc:
+        return None, _friendly_gemini_error(exc)
 
 
 def dashboard_page(data: pd.DataFrame, selected_regions: list[str]) -> None:
     st.title("Dashboard Ekonomi dan Pendidikan Provinsi")
     st.caption("Dashboard visualisasi data ini berfungsi untuk membantu pengguna memahami hubungan antara PDRB (Produk Domestik Regional Bruto) dan rata-rata lama sekolah antar provinsi secara interaktif, ")
     st.caption("untuk memudahkan analisis tren, perbandingan, dan pengambilan keputusan berbasis data.")
-    
+
     st.caption(f"Baris data provinsi aktif: {len(data)}")
 
     latest_year = int(data["tahun"].max())
@@ -23,6 +149,27 @@ def dashboard_page(data: pd.DataFrame, selected_regions: list[str]) -> None:
     st.subheader("Scatter Plot Terhubung per Tahun")
     st.write("Setiap titik adalah satu provinsi pada satu tahun, lalu dihubungkan menurut urutan tahun.")
     render_connected_scatter(data)
+
+    st.subheader("Insight AI (Gemini)")
+    st.caption("Klik tombol untuk generate insight otomatis dari data scatter plot yang sedang aktif.")
+    button_col, _ = st.columns([1, 7])
+    if button_col.button("Generate"):
+        resolved_api_key = _resolve_gemini_api_key(st.secrets.get("GEMINI_API_KEY", ""))
+        if not resolved_api_key:
+            st.warning(
+                "API key belum ada. Set `GEMINI_API_KEY` di `.streamlit/secrets.toml` atau `dashboard/config.py`."
+            )
+        else:
+            with st.spinner("Gemini sedang menganalisis pola scatter plot..."):
+                insight_text, error_text = _generate_gemini_insight(data, resolved_api_key)
+
+            if error_text:
+                st.error(error_text)
+            else:
+                st.success("Insight AI berhasil dibuat")
+                with st.container(border=True):
+                    st.markdown("**Hasil Insight AI**")
+                    st.markdown(insight_text)
 
     left_col, right_col = st.columns([1.2, 1])
 
@@ -178,11 +325,12 @@ def profile_page(data: pd.DataFrame, selected_regions: list[str]) -> None:
     st.caption("`a` : 25% < RSE <= 50%")
     st.caption("`b` : RSE < 50%")
     st.caption("`c` : Penjumlahan tidak sama dengan wilayah diatasnya")
+
+
 def build_about_dialog_content() -> str:
     return """
-### Tentang Website
 
-**Keterangan:**
+**Hal-hal yang perlu diperhatikan :**
 
 1. `Cache file 6 jam`
    Respons endpoint disimpan ke folder cache lokal server supaya tidak memukul API terus-menerus.
